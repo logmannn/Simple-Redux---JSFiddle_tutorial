@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
-import App from "./App";
 import registerServiceWorker from "./registerServiceWorker";
 import { createStore, combineReducers } from "redux";
 import { Provider, connect } from "react-redux";
@@ -48,9 +47,20 @@ const visibilityFilter = (state = "SHOW_ALL", action) => {
   }
 };
 
+const searchFilter = (state = "", action) => {
+  console.log(action);
+  switch (action.type) {
+    case "SEARCH_TODO":
+      return action.text;
+    default:
+      return state;
+  }
+};
+
 const todoApp = combineReducers({
   todos,
-  visibilityFilter
+  visibilityFilter,
+  searchFilter
 });
 
 let nextTodoId = 0;
@@ -58,6 +68,13 @@ const addTodo = text => {
   return {
     type: "ADD_TODO",
     id: nextTodoId++,
+    text
+  };
+};
+
+const searchTodo = text => {
+  return {
+    type: "SEARCH_TODO",
     text
   };
 };
@@ -165,20 +182,65 @@ let AddTodo = ({ dispatch }) => {
 };
 AddTodo = connect()(AddTodo);
 
-const getVisibleTodos = (todos, filter) => {
+let SearchTodo = ({ dispatch }) => {
+  let input;
+
+  return (
+    <div>
+      <input
+        ref={node => {
+          input = node;
+        }}
+      />
+      <button
+        onClick={() => {
+          dispatch(searchTodo(input.value));
+          //   input.value = "";
+        }}
+      >
+        Search Todo
+      </button>
+    </div>
+  );
+};
+SearchTodo = connect()(SearchTodo);
+
+const getVisibleTodos = (todos, filter, search) => {
+  console.log(todos);
+  console.log(filter);
+  console.log("search");
+  console.log(search);
+  let filteredTodos;
   switch (filter) {
     case "SHOW_ALL":
+      if (search != "") {
+        return todos.filter(t => t.text === search);
+      }
       return todos;
     case "SHOW_COMPLETED":
-      return todos.filter(t => t.completed);
+      filteredTodos = todos.filter(t => t.completed);
+      if (search != "") {
+        return filteredTodos.filter(t => t.text === search);
+      }
+      return filteredTodos;
     case "SHOW_ACTIVE":
-      return todos.filter(t => !t.completed);
+      filteredTodos = todos.filter(t => !t.completed);
+      if (search != "") {
+        return filteredTodos.filter(t => t.text === search);
+      }
+      return filteredTodos;
+    default:
+      return todos;
   }
 };
 
 const mapStateToTodoListProps = state => {
   return {
-    todos: getVisibleTodos(state.todos, state.visibilityFilter)
+    todos: getVisibleTodos(
+      state.todos,
+      state.visibilityFilter,
+      state.searchFilter
+    )
   };
 };
 const mapDispatchToTodoListProps = dispatch => {
@@ -196,6 +258,7 @@ const VisibleTodoList = connect(
 const TodoApp = () => (
   <div>
     <AddTodo />
+    <SearchTodo />
     <VisibleTodoList />
     <Footer />
   </div>
